@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.google.flatbuffers;
+package com.netease.flatbuffers;
 
-import static com.google.flatbuffers.Constants.*;
+import static com.netease.flatbuffers.Constants.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;

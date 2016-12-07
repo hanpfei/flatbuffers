@@ -1,10 +1,10 @@
 import org.apache.commons.io.FileUtils
 
-class ProtobufPluginTestHelper {
+class FlatbufPluginTestHelper {
 
   static void appendPluginClasspath(File buildFile) {
     def pluginClasspathResource =
-        ProtobufPluginTestHelper.class.classLoader.findResource("plugin-classpath.txt")
+        FlatbufPluginTestHelper.class.classLoader.findResource("plugin-classpath.txt")
     if (pluginClasspathResource == null) {
       throw new IllegalStateException('Did not find plugin classpath resource, ' +
           'run `testClasses` build task.')

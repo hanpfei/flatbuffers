@@ -38,7 +38,7 @@ import org.gradle.util.ConfigureUtil
 /**
  * The main configuration block exposed as {@code protobuf} in the build script.
  */
-public class ProtobufConfigurator {
+public class FlatbufConfigurator {
   private final Project project
   private final GenerateProtoTaskCollection tasks
   private final ToolsLocator tools
@@ -50,7 +50,7 @@ public class ProtobufConfigurator {
    */
   public String generatedFilesBaseDir
 
-  public ProtobufConfigurator(Project project, FileResolver fileResolver) {
+  public FlatbufConfigurator(Project project, FileResolver fileResolver) {
     this.project = project
     if (Utils.isAndroidProject(project)) {
       tasks = new AndroidGenerateProtoTaskCollection()

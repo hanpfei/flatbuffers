@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.netease.flatbuf'
 
 android {
     compileSdkVersion 24
@@ -16,6 +17,29 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+//    lintOptions {
+//        abortOnError false
+//    }
+}
+
+buildscript {
+    //目前先发布在本地，后面会通过maven进行引用
+    repositories {
+        maven {
+            url "file:///Users/netease/Projects/CorpProjects/ht-flatbuffers/app/plugin"
+        }
+        maven {
+            url "http://mvn.hz.netease.com/artifactory/libs-releases/"
+        }
+        maven {
+            url "http://mvn.hz.netease.com/artifactory/libs-snapshots/"
+        }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.netease.hearttouch:ht-flatbuf-gradle-plugin:0.0.1-SNAPSHOT'
     }
 }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.flatbuffers;
+package com.netease.flatbuffers;
 
 import java.nio.ByteBuffer;
 

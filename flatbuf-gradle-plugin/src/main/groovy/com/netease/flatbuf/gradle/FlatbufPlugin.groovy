@@ -44,7 +44,7 @@ import org.gradle.api.tasks.SourceSet
 
 import javax.inject.Inject
 
-class ProtobufPlugin implements Plugin<Project> {
+class FlatbufPlugin implements Plugin<Project> {
     // any one of these plugins should be sufficient to proceed with applying this plugin
     private static final List<String> prerequisitePluginOptions = [
             'java',
@@ -58,12 +58,12 @@ class ProtobufPlugin implements Plugin<Project> {
     private boolean wasApplied = false;
 
     @Inject
-    public ProtobufPlugin(FileResolver fileResolver) {
+    public FlatbufPlugin(FileResolver fileResolver) {
       this.fileResolver = fileResolver
     }
 
     void apply(final Project project) {
-        println "ProtobufPlugin"
+        println "FlatbufPlugin"
         this.project = project
         // At least one of the prerequisite plugins must by applied before this plugin can be applied, so
         // we will use the PluginManager.withPlugin() callback mechanism to delay applying this plugin until
@@ -98,7 +98,7 @@ class ProtobufPlugin implements Plugin<Project> {
         // Provides the osdetector extension
         project.apply plugin: 'com.google.osdetector'
 
-        project.convention.plugins.protobuf = new ProtobufConvention(project, fileResolver);
+        project.convention.plugins.protobuf = new FlatbufConvention(project, fileResolver);
 
         addSourceSetExtensions()
         getSourceSets().all { sourceSet ->
@@ -142,7 +142,7 @@ class ProtobufPlugin implements Plugin<Project> {
      */
     private addSourceSetExtensions() {
       getSourceSets().all {  sourceSet ->
-        sourceSet.extensions.create('proto', ProtobufSourceDirectorySet, sourceSet.name, fileResolver)
+        sourceSet.extensions.create('proto', FlatbufSourceDirectorySet, sourceSet.name, fileResolver)
       }
     }
 
@@ -270,7 +270,7 @@ class ProtobufPlugin implements Plugin<Project> {
         sourceSets.each { sourceSet ->
           // Include sources
           Utils.addFilesToTaskInputs(project, inputs, sourceSet.proto)
-          ProtobufSourceDirectorySet protoSrcDirSet = sourceSet.proto
+          FlatbufSourceDirectorySet protoSrcDirSet = sourceSet.proto
           protoSrcDirSet.srcDirs.each { srcDir ->
             include srcDir
           }
@@ -312,7 +312,7 @@ class ProtobufPlugin implements Plugin<Project> {
       if (existingTask != null) {
         return existingTask
       }
-      return project.tasks.create(extractProtosTaskName, ProtobufExtract) {
+      return project.tasks.create(extractProtosTaskName, FlatbufExtract) {
         description = "Extracts proto files/dependencies specified by 'protobuf' configuration"
         destDir = getExtractedProtosDir(sourceSetName) as File
         inputs.files project.configurations[Utils.getConfigName(sourceSetName, 'protobuf')]
@@ -336,7 +336,7 @@ class ProtobufPlugin implements Plugin<Project> {
       if (existingTask != null) {
         return existingTask
       }
-      return project.tasks.create(extractIncludeProtosTaskName, ProtobufExtract) {
+      return project.tasks.create(extractIncludeProtosTaskName, FlatbufExtract) {
         description = "Extracts proto files from compile dependencies for includes"
         destDir = getExtractedIncludeProtosDir(sourceSetName) as File
         inputs.files project.configurations[Utils.getConfigName(sourceSetName, 'compile')]

@@ -11,15 +11,30 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'groovy'
 apply plugin: 'maven'
-apply plugin: 'signing'
+//apply plugin: 'signing'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.gradle.plugin-publish'
 apply plugin: 'com.github.ben-manes.versions'
 
-group = 'com.google.protobuf'
-version = '0.8.1-SNAPSHOT'
-
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+version = '0.0.1-SNAPSHOT'
+group = 'com.netease.hearttouch'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom.groupId = 'com.netease.hearttouch'
+            pom.artifactId = 'ht-flatbuf-gradle-plugin'
+            pom.version = '0.0.1-SNAPSHOT'
+            repository(url: 'file:///Users/netease/Projects/CorpProjects/ht-flatbuffers/app/plugin')
+//            repository(url: 'http://mvn.hz.netease.com/artifactory/libs-releases') {
+//                authentication(userName: 'developer', password: 'netease')
+//            }
+//            snapshotRepository(url: 'http://mvn.hz.netease.com/artifactory/libs-snapshots')
+        }
+    }
+}
 
 buildscript {
     repositories {
@@ -94,91 +109,27 @@ artifacts {
      archives groovydocJar
      archives javadocJar
 }
-
-// The Gradle plugin portal doesn't allow signature files.
-if (!gradle.startParameter.taskNames.intersect(['publishPlugins'])) {
-  signing {
-       required { isReleaseVersion }
-       sign configurations.archives
-  }
-}
-
-sourceCompatibility = JavaVersion.VERSION_1_7
-targetCompatibility = JavaVersion.VERSION_1_7
-
-uploadArchives {
-    repositories.mavenDeployer {
-        repository(url: 'file:///media/data/CorpProjects/netlibdemo/app/plugin')
-        pom.groupId = 'com.google.protobuf'
-        pom.artifactId = 'protobuf-gradle-plugin'
-        pom.version = '0.8.1-SNAPSHOT'
-    }
-}
-
-//uploadArchives {
-//  repositories {
-//    mavenDeployer {
-//      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-//      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-//        if (rootProject.hasProperty("ossrhUsername") && rootProject.hasProperty("ossrhPassword")) {
-//          authentication(userName: ossrhUsername, password: ossrhPassword)
-//        }
-//      }
-//      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-//        if (rootProject.hasProperty("ossrhUsername") && rootProject.hasProperty("ossrhPassword")) {
-//          authentication(userName: ossrhUsername, password: ossrhPassword)
-//        }
-//      }
-//      pom.project {
-//        name project.name
-//        description "Gradle build plugin to handle Protocol Buffers automated code generation and compilation"
-//        url "https://github.com/google/protobuf-gradle-plugin"
-//        licenses {
-//          license {
-//            name "BSD 3-Clause"
-//            url "http://opensource.org/licenses/BSD-3-Clause"
-//          }
-//        }
-//        developers {
-//          developer {
-//            id "zhangkun83"
-//            name "Kun Zhang"
-//            email "zhangkun@google.com"
-//          }
-//        }
-//        scm {
-//          connection "scm:git:git://github.com/google/protobuf-gradle-plugin.git"
-//          developerConnection "scm:git:git@github.com:google/protobuf-gradle-plugin.git"
-//          url "https://github.com/google/protobuf-gradle-plugin"
-//        }
-//      }
-//    }
+//
+//// The Gradle plugin portal doesn't allow signature files.
+//if (!gradle.startParameter.taskNames.intersect(['publishPlugins'])) {
+//  signing {
+//       required { isReleaseVersion }
+//       sign configurations.archives
 //  }
 //}
 
-pluginBundle {
-  website = 'https://github.com/google/protobuf-gradle-plugin'
-  vcsUrl = 'https://github.com/google/protobuf-gradle-plugin'
-  description = 'The Protobuf plugin provides protobuf compilation to your project.'
-
-  plugins {
-      protobufPlugin {
-          id = 'com.google.protobuf'
-          displayName = 'Protobuf Plugin for Gradle'
-          tags = ['protobuf', 'protocol-buffers', 'protoc']
-      }
-  }
-}
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
 
 // Releases must be built on Java 1.7. Building on Java 1.8 will make the
 // plugin runnable only on Java 1.8.
 // See https://github.com/grpc/grpc-java/issues/805
 task checkJavaVersion << {
   JavaVersion javaVersion = JavaVersion.current()
-//  if (!javaVersion.isJava7()) {
-//    throw new GradleException(
-//        "The plugin must be published under Java 1.7 but ${javaVersion} is found")
-//  }
+  if (!javaVersion.isJava7Compatible()) {
+    throw new GradleException(
+        "The plugin must be published under Java 1.7 but ${javaVersion} is found")
+  }
 }
 [uploadArchives, publishPlugins]*.dependsOn checkJavaVersion
 

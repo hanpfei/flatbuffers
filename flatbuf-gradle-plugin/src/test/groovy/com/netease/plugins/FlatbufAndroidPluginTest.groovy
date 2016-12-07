@@ -1,19 +1,15 @@
-package com.google.protobuf.gradle.plugins
+package com.netease.flatbuf.gradle.plugins
 
-import com.google.protobuf.gradle.GenerateProtoTask
-import com.google.protobuf.gradle.ProtobufExtract
-import org.gradle.api.Project
-import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Specification
 
-class ProtobufAndroidPluginTest extends Specification {
+class FlatbufAndroidPluginTest extends Specification {
 
   def "testProjectAndroid should be successfully executed"() {
     given: "project from testProject, testProjectLite & testProjectAndroid"
-    def mainProjectDir = ProtobufPluginTestHelper.prepareTestTempDir('testProjectAndroid')
-    ProtobufPluginTestHelper.copyTestProjects(mainProjectDir, 'testProject', 'testProjectLite', 'testProjectAndroid')
+    def mainProjectDir = FlatbufPluginTestHelper.prepareTestTempDir('testProjectAndroid')
+    FlatbufPluginTestHelper.copyTestProjects(mainProjectDir, 'testProject', 'testProjectLite', 'testProjectAndroid')
 
     when: "build is invoked"
     def result = GradleRunner.create()

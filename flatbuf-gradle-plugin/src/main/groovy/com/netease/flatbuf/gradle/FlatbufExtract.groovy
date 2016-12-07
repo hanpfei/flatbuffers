@@ -31,13 +31,12 @@ package com.netease.flatbuf.gradle
 
 import com.google.common.base.Preconditions
 import org.gradle.api.DefaultTask
-import org.gradle.api.GradleException
 import org.gradle.api.tasks.TaskAction
 
 /**
  * Extracts proto files from a dependency configuration.
  */
-class ProtobufExtract extends DefaultTask {
+class FlatbufExtract extends DefaultTask {
 
   /**
    * The directory for the extracted files.

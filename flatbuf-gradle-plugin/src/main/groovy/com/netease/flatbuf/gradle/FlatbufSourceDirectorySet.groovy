@@ -41,9 +41,9 @@ import org.gradle.util.ConfigureUtil
 /**
  * The backing class of the proto extension added to sourceSets, e.g., sourceSets.main.proto
  */
-public class ProtobufSourceDirectorySet extends DefaultSourceDirectorySet {
+public class FlatbufSourceDirectorySet extends DefaultSourceDirectorySet {
 
-  public ProtobufSourceDirectorySet(String name, FileResolver fileResolver) {
+  public FlatbufSourceDirectorySet(String name, FileResolver fileResolver) {
     super(name, String.format("%s Proto source", name), fileResolver, new DefaultDirectoryFileTreeFactory())
     srcDir("src/${name}/proto")
     include("**/*.proto")
