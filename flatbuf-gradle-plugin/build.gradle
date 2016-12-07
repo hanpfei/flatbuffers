@@ -18,20 +18,16 @@ apply plugin: 'com.github.ben-manes.versions'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
-version = '0.0.1-SNAPSHOT'
-group = 'com.netease.hearttouch'
-
 uploadArchives {
     repositories {
         mavenDeployer {
             pom.groupId = 'com.netease.hearttouch'
             pom.artifactId = 'ht-flatbuf-gradle-plugin'
             pom.version = '0.0.1-SNAPSHOT'
-            repository(url: 'file:///Users/netease/Projects/CorpProjects/ht-flatbuffers/app/plugin')
-//            repository(url: 'http://mvn.hz.netease.com/artifactory/libs-releases') {
-//                authentication(userName: 'developer', password: 'netease')
-//            }
-//            snapshotRepository(url: 'http://mvn.hz.netease.com/artifactory/libs-snapshots')
+            repository(url: 'http://mvn.hz.netease.com/artifactory/libs-releases') {
+                authentication(userName: 'developer', password: 'netease')
+            }
+            snapshotRepository(url: 'http://mvn.hz.netease.com/artifactory/libs-snapshots')
         }
     }
 }
