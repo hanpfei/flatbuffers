@@ -1,0 +1,206 @@
+println """\
+Welcome to Gradle $gradle.gradleVersion - http://www.gradle.org
+Gradle home is set to: $gradle.gradleHomeDir
+Gradle user directory is set to: $gradle.gradleUserHomeDir
+
+Base directory: $projectDir
+Running script ${relativePath(buildFile)}
+"""
+
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'groovy'
+apply plugin: 'maven'
+apply plugin: 'signing'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'com.gradle.plugin-publish'
+apply plugin: 'com.github.ben-manes.versions'
+
+group = 'com.google.protobuf'
+version = '0.8.1-SNAPSHOT'
+
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" } // Mirrors jcenter() and mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.6'
+        classpath "com.gradle.publish:plugin-publish-plugin:0.9.5"
+        classpath "com.github.ben-manes:gradle-versions-plugin:0.12.0"
+    }
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+}
+
+// Write the plugin's classpath to a file to share with the tests
+task createClasspathManifest {
+    def outputDir = file("$buildDir/$name")
+
+    inputs.files sourceSets.main.runtimeClasspath
+    outputs.dir outputDir
+
+    doLast {
+        outputDir.mkdirs()
+        file("$outputDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+    }
+}
+
+dependencies {
+    compileOnly gradleApi()
+    compileOnly localGroovy()
+    compile 'com.google.guava:guava:18.0'
+    compile 'com.google.gradle:osdetector-gradle-plugin:1.4.0'
+    compile 'commons-lang:commons-lang:2.6'
+
+    testCompile gradleTestKit()
+    testCompile gradleApi()
+    testCompile localGroovy()
+    testCompile 'junit:junit:4.12'
+    testCompile ('org.spockframework:spock-core:1.0-groovy-2.4') {
+      exclude module : 'groovy-all'
+    }
+    testCompile 'commons-io:commons-io:2.5'
+
+    // Add the classpath file to the test runtime classpath
+    testRuntime files(createClasspathManifest)
+}
+
+task sourcesJar(type: Jar, dependsOn:classes) {
+     classifier = 'sources'
+     from sourceSets.main.allSource
+}
+
+task groovydocJar(type: Jar, dependsOn:groovydoc) {
+     classifier = 'groovydoc'
+     from groovydoc.destinationDir
+}
+
+task javadocJar(type: Jar, dependsOn:javadoc) {
+     classifier = 'javadoc'
+     from javadoc.destinationDir
+}
+
+artifacts {
+     archives sourcesJar
+     archives groovydocJar
+     archives javadocJar
+}
+
+// The Gradle plugin portal doesn't allow signature files.
+if (!gradle.startParameter.taskNames.intersect(['publishPlugins'])) {
+  signing {
+       required { isReleaseVersion }
+       sign configurations.archives
+  }
+}
+
+sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7
+
+uploadArchives {
+    repositories.mavenDeployer {
+        repository(url: 'file:///media/data/CorpProjects/netlibdemo/app/plugin')
+        pom.groupId = 'com.google.protobuf'
+        pom.artifactId = 'protobuf-gradle-plugin'
+        pom.version = '0.8.1-SNAPSHOT'
+    }
+}
+
+//uploadArchives {
+//  repositories {
+//    mavenDeployer {
+//      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+//      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+//        if (rootProject.hasProperty("ossrhUsername") && rootProject.hasProperty("ossrhPassword")) {
+//          authentication(userName: ossrhUsername, password: ossrhPassword)
+//        }
+//      }
+//      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+//        if (rootProject.hasProperty("ossrhUsername") && rootProject.hasProperty("ossrhPassword")) {
+//          authentication(userName: ossrhUsername, password: ossrhPassword)
+//        }
+//      }
+//      pom.project {
+//        name project.name
+//        description "Gradle build plugin to handle Protocol Buffers automated code generation and compilation"
+//        url "https://github.com/google/protobuf-gradle-plugin"
+//        licenses {
+//          license {
+//            name "BSD 3-Clause"
+//            url "http://opensource.org/licenses/BSD-3-Clause"
+//          }
+//        }
+//        developers {
+//          developer {
+//            id "zhangkun83"
+//            name "Kun Zhang"
+//            email "zhangkun@google.com"
+//          }
+//        }
+//        scm {
+//          connection "scm:git:git://github.com/google/protobuf-gradle-plugin.git"
+//          developerConnection "scm:git:git@github.com:google/protobuf-gradle-plugin.git"
+//          url "https://github.com/google/protobuf-gradle-plugin"
+//        }
+//      }
+//    }
+//  }
+//}
+
+pluginBundle {
+  website = 'https://github.com/google/protobuf-gradle-plugin'
+  vcsUrl = 'https://github.com/google/protobuf-gradle-plugin'
+  description = 'The Protobuf plugin provides protobuf compilation to your project.'
+
+  plugins {
+      protobufPlugin {
+          id = 'com.google.protobuf'
+          displayName = 'Protobuf Plugin for Gradle'
+          tags = ['protobuf', 'protocol-buffers', 'protoc']
+      }
+  }
+}
+
+// Releases must be built on Java 1.7. Building on Java 1.8 will make the
+// plugin runnable only on Java 1.8.
+// See https://github.com/grpc/grpc-java/issues/805
+task checkJavaVersion << {
+  JavaVersion javaVersion = JavaVersion.current()
+//  if (!javaVersion.isJava7()) {
+//    throw new GradleException(
+//        "The plugin must be published under Java 1.7 but ${javaVersion} is found")
+//  }
+}
+[uploadArchives, publishPlugins]*.dependsOn checkJavaVersion
+
+if (System.env.TRAVIS == 'true') {
+  // To limit the memory usage when running in Travis.
+  // Travis tend to kill tasks that use too much memory.
+  allprojects {
+    tasks.withType(GroovyCompile) {
+      groovyOptions.fork = false
+    }
+    tasks.withType(Test) {
+      // containers (currently) have 2 dedicated cores and 4GB of memory
+      maxParallelForks = 2
+      minHeapSize = '128m'
+    }
+  }
+  // The Android test takes longer than 10 minutes.  Travis kills the test if it has
+  // seen no output for 10 minutes, so we need to produced output.
+  test {
+    testLogging {
+      showStandardStreams = true
+    }
+  }
+}
+

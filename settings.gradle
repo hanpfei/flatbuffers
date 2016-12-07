@@ -1,1 +1,1 @@
-include ':app', ':flatbuffers'
+include ':app', ':flatbuffers', ':flatbuf-gradle-plugin'
