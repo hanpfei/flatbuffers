@@ -322,25 +322,6 @@ public class GenerateFlatTask extends DefaultTask {
   //    flatc invocation logic
   //===========================================================================
 
-  // flatc allows you to prefix comma-delimited options to the path in
-  // the --*_out flags, e.g.,
-  // - Without options: --java_out=/path/to/output
-  // - With options: --java_out=option1,option2:/path/to/output
-  // This method generates the prefix out of the given options.
-  static String makeOptionsPrefix(List<String> options) {
-    StringBuilder prefix = new StringBuilder()
-    if (!options.isEmpty()) {
-      options.each { option ->
-        if (prefix.length() > 0) {
-          prefix.append(',')
-        }
-        prefix.append(option)
-      }
-      prefix.append(':')
-    }
-    return prefix.toString()
-  }
-
   String getOutputDir(PluginOptions plugin) {
     return "${outputBaseDir}/${plugin.outputSubDir}"
   }
@@ -363,51 +344,24 @@ public class GenerateFlatTask extends DefaultTask {
     ToolsLocator tools = project.flatbuf.tools
     Set<File> flatFiles = inputs.sourceFiles.files
 
-    [builtins, plugins]*.each { plugin ->
-      File outputDir = new File(getOutputDir(plugin))
-      outputDir.mkdirs()
-    }
-
-    def dirs = includeDirs*.path.collect {"-I${it}"}
-    logger.info "ProtobufCompile using directories ${dirs}"
-    logger.info "ProtobufCompile using files ${flatFiles}"
     def cmd = [ tools.flatc.path ]
-    cmd.addAll(dirs)
+
+    if (!includeDirs.isEmpty()) {
+      includeDirs.each { includeDir ->
+        if (includeDir.length() > 0) {
+          cmd.add("-I")
+          cmd.add(includeDir)
+        }
+      }
+    }
 
     // Handle code generation built-ins
     builtins.each { builtin ->
-      String outPrefix = makeOptionsPrefix(builtin.options)
-      cmd += "--${builtin.name}_out=${outPrefix}${getOutputDir(builtin)}"
+      cmd += "--${builtin.name}"
     }
 
-    // Handle code generation plugins
-    plugins.each { plugin ->
-      String name = plugin.name
-      ExecutableLocator locator = tools.plugins.findByName(name)
-      if (locator == null) {
-        throw new GradleException("Codegen plugin ${name} not defined")
-      }
-      String pluginOutPrefix = makeOptionsPrefix(plugin.options)
-      cmd += "--${name}_out=${pluginOutPrefix}${getOutputDir(plugin)}"
-      cmd += "--plugin=flatc-gen-${name}=${locator.path}"
-    }
-
-    if (generateDescriptorSet) {
-      def path = getDescriptorPath()
-      // Ensure that the folder for the descriptor exists;
-      // the user may have set it to point outside an existing tree
-      def folder = new File(path).parentFile
-      if (!folder.exists()) {
-        folder.mkdirs()
-      }
-      cmd += "--descriptor_set_out=${path}"
-      if (descriptorSetOptions.includeImports) {
-        cmd += "--include_imports"
-      }
-      if (descriptorSetOptions.includeSourceInfo) {
-        cmd += "--include_source_info"
-      }
-    }
+    cmd += "-o"
+    cmd += "${outputBaseDir}/java"
 
     cmd.addAll flatFiles
     logger.log(LogLevel.INFO, cmd.toString())
@@ -416,8 +370,6 @@ public class GenerateFlatTask extends DefaultTask {
     Process result = cmd.execute()
     result.waitForProcessOutput(stdout, stderr)
     def output = "cmd: ${cmd}, flatc: stdout: ${stdout}. stderr: ${stderr}"
-
-//    logger.log(LogLevel.INFO, cmd)
 
     if (result.exitValue() == 0) {
       logger.log(LogLevel.INFO, output)

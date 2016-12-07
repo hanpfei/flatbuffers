@@ -44,9 +44,6 @@ flatbuf {
             }
             task.builtins {
                 java { }
-                // Add cpp output without any option.
-                // DO NOT omit the braces if you want this builtin to be added.
-                cpp { }
             }
         }
     }
@@ -79,4 +76,5 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:24.2.1'
     testCompile 'junit:junit:4.12'
+    compile 'com.netease.hearttouch:ht-flatbuffers:0.0.1-SNAPSHOT'
 }

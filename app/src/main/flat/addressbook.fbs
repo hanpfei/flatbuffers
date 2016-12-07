@@ -1,0 +1,33 @@
+// Generated from addressbook.proto
+
+namespace com.example.tutorial;
+
+enum PhoneType : int {
+  MOBILE = 0,
+  HOME = 1,
+  WORK = 2,
+}
+
+namespace com.example.tutorial;
+
+table Person {
+  name:string (required);
+  id:int;
+  email:string;
+  phone:[com.example.tutorial._Person.PhoneNumber];
+}
+
+namespace com.example.tutorial._Person;
+
+table PhoneNumber {
+  number:string (required);
+  type:int;
+}
+
+namespace com.example.tutorial;
+
+table AddressBook {
+  person:[com.example.tutorial.Person];
+}
+
+root_type AddressBook;
