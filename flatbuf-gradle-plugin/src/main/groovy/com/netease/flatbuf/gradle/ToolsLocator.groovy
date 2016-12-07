@@ -36,17 +36,17 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
 
 /**
- * Holds locations of all external executables, i.e., protoc and plugins.
+ * Holds locations of all external executables, i.e., flatc and plugins.
  */
 class ToolsLocator {
 
   private final Project project
-  private final ExecutableLocator protoc
+  private final ExecutableLocator flatc
   private final NamedDomainObjectContainer<ExecutableLocator> plugins
 
   ToolsLocator(Project project) {
     this.project = project
-    protoc = new ExecutableLocator('protoc')
+    flatc = new ExecutableLocator('flatc')
     plugins = project.container(ExecutableLocator)
   }
 
@@ -57,24 +57,24 @@ class ToolsLocator {
    * and adds a doFirst {} block to the specified tasks which resolves the
    * spec, downloads the artifact, and point to the local path.
    */
-  void registerTaskDependencies(Collection<GenerateProtoTask> protoTasks) {
-    if (protoc.artifact != null) {
-      registerDependencyWithTasks(protoc, protoTasks)
-    } else if (protoc.path == null) {
-      protoc.path = 'protoc'
+  void registerTaskDependencies(Collection<GenerateFlatTask> flatTasks) {
+    if (flatc.artifact != null) {
+      registerDependencyWithTasks(flatc, flatTasks)
+    } else if (flatc.path == null) {
+      flatc.path = 'flatc'
     }
     for (ExecutableLocator pluginLocator in plugins) {
       if (pluginLocator.artifact != null) {
-        registerDependencyWithTasks(pluginLocator, protoTasks)
+        registerDependencyWithTasks(pluginLocator, flatTasks)
       } else if (pluginLocator.path == null) {
-        pluginLocator.path = "protoc-gen-${pluginLocator.name}"
+        pluginLocator.path = "flatc-gen-${pluginLocator.name}"
       }
     }
   }
 
-  void registerDependencyWithTasks(ExecutableLocator locator, Collection<GenerateProtoTask> protoTasks) {
+  void registerDependencyWithTasks(ExecutableLocator locator, Collection<GenerateFlatTask> flatTasks) {
     // create a project configuration dependency for the artifact
-    Configuration config = project.configurations.create("protobufToolsLocator_${locator.name}") {
+    Configuration config = project.configurations.create("flatbufToolsLocator_${locator.name}") {
       visible = false
       transitive = false
       extendsFrom = []
@@ -88,12 +88,12 @@ class ToolsLocator {
                     ext: 'exe']
     Dependency dep = project.dependencies.add(config.name, notation)
 
-    for (GenerateProtoTask protoTask in protoTasks) {
-      if (protoc.is(locator) || protoTask.hasPlugin(locator.name)) {
+    for (GenerateFlatTask flatTask in flatTasks) {
+      if (flatc.is(locator) || flatTask.hasPlugin(locator.name)) {
         // register the configuration dependency as a task input
-        protoTask.inputs.files(config)
+        flatTask.inputs.files(config)
 
-        protoTask.doFirst {
+        flatTask.doFirst {
           if (locator.path == null) {
             project.logger.info("Resolving artifact: ${notation}")
             File file = config.fileCollection(dep).singleFile

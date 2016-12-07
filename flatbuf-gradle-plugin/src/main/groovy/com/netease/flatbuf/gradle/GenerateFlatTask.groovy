@@ -42,10 +42,10 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.util.ConfigureUtil
 
 /**
- * The task that compiles proto files into Java files.
+ * The task that compiles flat files into Java files.
  */
 // TODO(zhangkun83): add per-plugin output dir reconfiguraiton.
-public class GenerateProtoTask extends DefaultTask {
+public class GenerateFlatTask extends DefaultTask {
 
   private final List includeDirs = new ArrayList()
   private final NamedDomainObjectContainer<PluginOptions> builtins
@@ -56,7 +56,7 @@ public class GenerateProtoTask extends DefaultTask {
   // constructor arguments. We use the initializing flag to prevent users from
   // accidentally modifying them.
   private String outputBaseDir
-  // Tags for selectors inside protobuf.generateProtoTasks
+  // Tags for selectors inside flatbuf.generateProtoTasks
   private SourceSet sourceSet
   private Object variant
   private ImmutableList<String> flavors
@@ -64,7 +64,7 @@ public class GenerateProtoTask extends DefaultTask {
   private boolean isTestVariant
 
   /**
-   * If true, will set the protoc flag
+   * If true, will set the flatc flag
    * --descriptor_set_out="${outputBaseDir}/descriptor_set.desc"
    *
    * Default: false
@@ -206,7 +206,7 @@ public class GenerateProtoTask extends DefaultTask {
       ? descriptorSetOptions.path : "${outputBaseDir}/descriptor_set.desc"
   }
 
-  public GenerateProtoTask() {
+  public GenerateFlatTask() {
     builtins = project.container(PluginOptions)
     plugins = project.container(PluginOptions)
   }
@@ -216,7 +216,7 @@ public class GenerateProtoTask extends DefaultTask {
   //===========================================================================
 
   /**
-   * Configures the protoc builtins in a closure, which will be maniuplating a
+   * Configures the flatc builtins in a closure, which will be maniuplating a
    * NamedDomainObjectContainer<PluginOptions>.
    */
   public void builtins(Closure configureClosure) {
@@ -225,7 +225,7 @@ public class GenerateProtoTask extends DefaultTask {
   }
 
   /**
-   * Returns the container of protoc builtins.
+   * Returns the container of flatc builtins.
    */
   public NamedDomainObjectContainer<PluginOptions> getBuiltins() {
     checkCanConfig()
@@ -233,7 +233,7 @@ public class GenerateProtoTask extends DefaultTask {
   }
 
   /**
-   * Configures the protoc plugins in a closure, which will be maniuplating a
+   * Configures the flatc plugins in a closure, which will be maniuplating a
    * NamedDomainObjectContainer<PluginOptions>.
    */
   public void plugins(Closure configureClosure) {
@@ -242,7 +242,7 @@ public class GenerateProtoTask extends DefaultTask {
   }
 
   /**
-   * Returns the container of protoc plugins.
+   * Returns the container of flatc plugins.
    */
   public NamedDomainObjectContainer<PluginOptions> getPlugins() {
     checkCanConfig()
@@ -257,7 +257,7 @@ public class GenerateProtoTask extends DefaultTask {
   }
 
   /**
-   * Add a directory to protoc's include path.
+   * Add a directory to flatc's include path.
    */
   public void include(Object dir) {
     checkCanConfig()
@@ -269,7 +269,7 @@ public class GenerateProtoTask extends DefaultTask {
   }
 
   /**
-   * The container of command-line options for a protoc plugin or a built-in output.
+   * The container of command-line options for a flatc plugin or a built-in output.
    */
   public static class PluginOptions implements Named {
     private final ArrayList<String> options = new ArrayList<String>()
@@ -301,7 +301,7 @@ public class GenerateProtoTask extends DefaultTask {
     }
 
     /**
-     * Set the output directory for this plugin, relative to {@link GenerateProtoTask#outputBaseDir}.
+     * Set the output directory for this plugin, relative to {@link GenerateFlatTask#outputBaseDir}.
      */
     public setOutputSubDir(String outputSubDir) {
       this.outputSubDir = outputSubDir
@@ -319,10 +319,10 @@ public class GenerateProtoTask extends DefaultTask {
   }
 
   //===========================================================================
-  //    protoc invocation logic
+  //    flatc invocation logic
   //===========================================================================
 
-  // protoc allows you to prefix comma-delimited options to the path in
+  // flatc allows you to prefix comma-delimited options to the path in
   // the --*_out flags, e.g.,
   // - Without options: --java_out=/path/to/output
   // - With options: --java_out=option1,option2:/path/to/output
@@ -360,8 +360,8 @@ public class GenerateProtoTask extends DefaultTask {
   def compile() {
     Preconditions.checkState(state == State.FINALIZED, 'doneConfig() has not been called')
 
-    ToolsLocator tools = project.protobuf.tools
-    Set<File> protoFiles = inputs.sourceFiles.files
+    ToolsLocator tools = project.flatbuf.tools
+    Set<File> flatFiles = inputs.sourceFiles.files
 
     [builtins, plugins]*.each { plugin ->
       File outputDir = new File(getOutputDir(plugin))
@@ -370,8 +370,8 @@ public class GenerateProtoTask extends DefaultTask {
 
     def dirs = includeDirs*.path.collect {"-I${it}"}
     logger.info "ProtobufCompile using directories ${dirs}"
-    logger.info "ProtobufCompile using files ${protoFiles}"
-    def cmd = [ tools.protoc.path ]
+    logger.info "ProtobufCompile using files ${flatFiles}"
+    def cmd = [ tools.flatc.path ]
     cmd.addAll(dirs)
 
     // Handle code generation built-ins
@@ -389,7 +389,7 @@ public class GenerateProtoTask extends DefaultTask {
       }
       String pluginOutPrefix = makeOptionsPrefix(plugin.options)
       cmd += "--${name}_out=${pluginOutPrefix}${getOutputDir(plugin)}"
-      cmd += "--plugin=protoc-gen-${name}=${locator.path}"
+      cmd += "--plugin=flatc-gen-${name}=${locator.path}"
     }
 
     if (generateDescriptorSet) {
@@ -409,13 +409,13 @@ public class GenerateProtoTask extends DefaultTask {
       }
     }
 
-    cmd.addAll protoFiles
+    cmd.addAll flatFiles
     logger.log(LogLevel.INFO, cmd.toString())
     def stdout = new StringBuffer()
     def stderr = new StringBuffer()
     Process result = cmd.execute()
     result.waitForProcessOutput(stdout, stderr)
-    def output = "cmd: ${cmd}, protoc: stdout: ${stdout}. stderr: ${stderr}"
+    def output = "cmd: ${cmd}, flatc: stdout: ${stdout}. stderr: ${stderr}"
 
 //    logger.log(LogLevel.INFO, cmd)
 

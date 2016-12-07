@@ -72,7 +72,7 @@ class FlatbufPlugin implements Plugin<Project> {
         // throw an Exception to alert the user of this configuration issue.
         Action<? super AppliedPlugin> applyWithPrerequisitePlugin = { prerequisitePlugin ->
           if (wasApplied) {
-            project.logger.warn('The com.google.protobuf plugin was already applied to the project: ' + project.path
+            project.logger.warn('The com.netease.flatbuf plugin was already applied to the project: ' + project.path
                 + ' and will not be applied again after plugin: ' + prerequisitePlugin.id)
 
           } else {
@@ -88,7 +88,7 @@ class FlatbufPlugin implements Plugin<Project> {
 
         project.afterEvaluate {
           if (!wasApplied) {
-            throw new GradleException('The com.google.protobuf plugin could not be applied during project evaluation.'
+            throw new GradleException('The com.netease.flatbuf plugin could not be applied during project evaluation.'
                 + ' The Java plugin or one of the Android plugins must be applied to the project first.')
           }
         }
@@ -98,7 +98,7 @@ class FlatbufPlugin implements Plugin<Project> {
         // Provides the osdetector extension
         project.apply plugin: 'com.google.osdetector'
 
-        project.convention.plugins.protobuf = new FlatbufConvention(project, fileResolver);
+        project.convention.plugins.flatbuf = new FlatbufConvention(project, fileResolver);
 
         addSourceSetExtensions()
         getSourceSets().all { sourceSet ->
@@ -106,18 +106,18 @@ class FlatbufPlugin implements Plugin<Project> {
         }
         project.afterEvaluate {
           // The Android variants are only available at this point.
-          addProtoTasks()
-          project.protobuf.runTaskConfigClosures()
+          addFlatTasks()
+          project.flatbuf.runTaskConfigClosures()
           // Disallow user configuration outside the config closures, because
-          // next in linkGenerateProtoTasksToJavaCompile() we add generated,
+          // next in linkGenerateFlatTasksToJavaCompile() we add generated,
           // outputs to the inputs of javaCompile tasks, and any new codegen
           // plugin output added after this point won't be added to javaCompile
           // tasks.
-          project.protobuf.generateProtoTasks.all()*.doneConfig()
-          linkGenerateProtoTasksToJavaCompile()
-          // protoc and codegen plugin configuration may change through the protobuf{}
+          project.flatbuf.generateFlatTasks.all()*.doneConfig()
+          linkGenerateFlatTasksToJavaCompile()
+          // flatc and codegen plugin configuration may change through the flatbuf{}
           // block. Only at this point the configuration has been finalized.
-          project.protobuf.tools.registerTaskDependencies(project.protobuf.getGenerateProtoTasks().all())
+          project.flatbuf.tools.registerTaskDependencies(project.flatbuf.getGenerateFlatTasks().all())
         }
     }
 
@@ -126,7 +126,7 @@ class FlatbufPlugin implements Plugin<Project> {
      * author can configure dependencies for it.
      */
     private createConfiguration(String sourceSetName) {
-      String configName = Utils.getConfigName(sourceSetName, 'protobuf')
+      String configName = Utils.getConfigName(sourceSetName, 'flatbuf')
       if (project.configurations.findByName(configName) == null) {
         project.configurations.create(configName) {
           visible = false
@@ -137,12 +137,12 @@ class FlatbufPlugin implements Plugin<Project> {
     }
 
     /**
-     * Adds the proto extension to all SourceSets, e.g., it creates
-     * sourceSets.main.proto and sourceSets.test.proto.
+     * Adds the flat extension to all SourceSets, e.g., it creates
+     * sourceSets.main.flat and sourceSets.test.flat.
      */
     private addSourceSetExtensions() {
       getSourceSets().all {  sourceSet ->
-        sourceSet.extensions.create('proto', FlatbufSourceDirectorySet, sourceSet.name, fileResolver)
+        sourceSet.extensions.create('flat', FlatbufSourceDirectorySet, sourceSet.name, fileResolver)
       }
     }
 
@@ -163,9 +163,9 @@ class FlatbufPlugin implements Plugin<Project> {
     }
 
     /**
-     * Adds Protobuf-related tasks to the project.
+     * Adds Flatbuf-related tasks to the project.
      */
-    private addProtoTasks() {
+    private addFlatTasks() {
       if (Utils.isAndroidProject(project)) {
         getNonTestVariants().each { variant ->
           addTasksForVariant(variant, false)
@@ -181,33 +181,33 @@ class FlatbufPlugin implements Plugin<Project> {
     }
 
     /**
-     * Creates Protobuf tasks for a sourceSet in a Java project.
+     * Creates Flatbuf tasks for a sourceSet in a Java project.
      */
     private addTasksForSourceSet(final SourceSet sourceSet) {
-      def generateProtoTask = addGenerateProtoTask(sourceSet.name, [sourceSet])
-      generateProtoTask.sourceSet = sourceSet
-      generateProtoTask.doneInitializing()
-      generateProtoTask.builtins {
+      def generateFlatTask = addGenerateFlatTask(sourceSet.name, [sourceSet])
+      generateFlatTask.sourceSet = sourceSet
+      generateFlatTask.doneInitializing()
+      generateFlatTask.builtins {
         java {}
       }
 
-      def extractProtosTask = maybeAddExtractProtosTask(sourceSet.name)
-      generateProtoTask.dependsOn(extractProtosTask)
+      def extractFlatsTask = maybeAddExtractFlatsTask(sourceSet.name)
+      generateFlatTask.dependsOn(extractFlatsTask)
 
-      def extractIncludeProtosTask = maybeAddExtractIncludeProtosTask(sourceSet.name)
-      generateProtoTask.dependsOn(extractIncludeProtosTask)
+      def extractIncludeFlatsTask = maybeAddExtractIncludeFlatsTask(sourceSet.name)
+      generateFlatTask.dependsOn(extractIncludeFlatsTask)
 
-      // Include source proto files in the compiled archive, so that proto files from
+      // Include source flat files in the compiled archive, so that flat files from
       // dependent projects can import them.
       def processResourcesTask =
           project.tasks.getByName(sourceSet.getTaskName('process', 'resources'))
-      processResourcesTask.from(generateProtoTask.inputs.sourceFiles) {
-        include '**/*.proto'
+      processResourcesTask.from(generateFlatTask.inputs.sourceFiles) {
+        include '**/*.fbs'
       }
     }
 
     /**
-     * Creates Protobuf tasks for a variant in an Android project.
+     * Creates Flatbuf tasks for a variant in an Android project.
      */
     private addTasksForVariant(final Object variant, final boolean isTestVariant) {
       // The collection of sourceSets that will be compiled for this variant
@@ -233,95 +233,95 @@ class FlatbufPlugin implements Plugin<Project> {
         sourceSets.add project.android.sourceSets.maybeCreate(sourceSetName)
       }
 
-      def generateProtoTask = addGenerateProtoTask(variant.name, sourceSets)
-      generateProtoTask.setVariant(variant, isTestVariant)
-      generateProtoTask.flavors = flavorListBuilder.build()
-      generateProtoTask.buildType = variant.buildType.name
-      generateProtoTask.doneInitializing()
+      def generateFlatTask = addGenerateFlatTask(variant.name, sourceSets)
+      generateFlatTask.setVariant(variant, isTestVariant)
+      generateFlatTask.flavors = flavorListBuilder.build()
+      generateFlatTask.buildType = variant.buildType.name
+      generateFlatTask.doneInitializing()
 
       sourceSetNames.each { sourceSetName ->
-        def extractProtosTask = maybeAddExtractProtosTask(sourceSetName)
-        generateProtoTask.dependsOn(extractProtosTask)
+        def extractFlatsTask = maybeAddExtractFlatsTask(sourceSetName)
+        generateFlatTask.dependsOn(extractFlatsTask)
 
-        def extractIncludeProtosTask = maybeAddExtractIncludeProtosTask(sourceSetName)
-        generateProtoTask.dependsOn(extractIncludeProtosTask)
+        def extractIncludeFlatsTask = maybeAddExtractIncludeFlatsTask(sourceSetName)
+        generateFlatTask.dependsOn(extractIncludeFlatsTask)
       }
 
-      // TODO(zhangkun83): Include source proto files in the compiled archive,
-      // so that proto files from dependent projects can import them.
+      // TODO(zhangkun83): Include source flat files in the compiled archive,
+      // so that flat files from dependent projects can import them.
     }
 
     /**
-     * Adds a task to run protoc and compile all proto source files for a sourceSet or variant.
+     * Adds a task to run flatc and compile all flat source files for a sourceSet or variant.
      *
      * @param sourceSetOrVariantName the name of the sourceSet (Java) or
      * variant (Android) that this task will run for.
      *
-     * @param sourceSets the sourceSets that contains the proto files to be
+     * @param sourceSets the sourceSets that contains the flat files to be
      * compiled. For Java it's the sourceSet that sourceSetOrVariantName stands
      * for; for Android it's the collection of sourceSets that the variant includes.
      */
-    private Task addGenerateProtoTask(String sourceSetOrVariantName, Collection<Object> sourceSets) {
-      def generateProtoTaskName = 'generate' +
-          Utils.getSourceSetSubstringForTaskNames(sourceSetOrVariantName) + 'Proto'
-      return project.tasks.create(generateProtoTaskName, GenerateProtoTask) {
-        description = "Compiles Proto source for '${sourceSetOrVariantName}'"
-        outputBaseDir = "${project.protobuf.generatedFilesBaseDir}/${sourceSetOrVariantName}"
+    private Task addGenerateFlatTask(String sourceSetOrVariantName, Collection<Object> sourceSets) {
+      def generateFlatTaskName = 'generate' +
+          Utils.getSourceSetSubstringForTaskNames(sourceSetOrVariantName) + 'Flat'
+      return project.tasks.create(generateFlatTaskName, GenerateFlatTask) {
+        description = "Compiles Flat source for '${sourceSetOrVariantName}'"
+        outputBaseDir = "${project.flatbuf.generatedFilesBaseDir}/${sourceSetOrVariantName}"
         sourceSets.each { sourceSet ->
           // Include sources
-          Utils.addFilesToTaskInputs(project, inputs, sourceSet.proto)
-          FlatbufSourceDirectorySet protoSrcDirSet = sourceSet.proto
-          protoSrcDirSet.srcDirs.each { srcDir ->
+          Utils.addFilesToTaskInputs(project, inputs, sourceSet.flat)
+          FlatbufSourceDirectorySet flatSrcDirSet = sourceSet.flat
+            flatSrcDirSet.srcDirs.each { srcDir ->
             include srcDir
           }
 
           // Include extracted sources
-          ConfigurableFileTree extractedProtoSources =
-              project.fileTree(getExtractedProtosDir(sourceSet.name)) {
-                include "**/*.proto"
+          ConfigurableFileTree extractedFlatSources =
+              project.fileTree(getExtractedFlatsDir(sourceSet.name)) {
+                include "**/*.flat"
               }
-          Utils.addFilesToTaskInputs(project, inputs, extractedProtoSources)
-          include extractedProtoSources.dir
+          Utils.addFilesToTaskInputs(project, inputs, extractedFlatSources)
+          include extractedFlatSources.dir
 
-          // Register extracted include protos
-          ConfigurableFileTree extractedIncludeProtoSources =
-              project.fileTree(getExtractedIncludeProtosDir(sourceSet.name)) {
-                include "**/*.proto"
+          // Register extracted include flats
+          ConfigurableFileTree extractedIncludeFlatSources =
+              project.fileTree(getExtractedIncludeFlatsDir(sourceSet.name)) {
+                include "**/*.fbs"
               }
           // Register them as input, but not as "source".
           // Inputs are checked in incremental builds, but only "source" files are compiled.
-          inputs.dir extractedIncludeProtoSources
-          // Add the extracted include dir to the --proto_path include paths.
-          include extractedIncludeProtoSources.dir
+          inputs.dir extractedIncludeFlatSources
+          // Add the extracted include dir to the --flat_path include paths.
+          include extractedIncludeFlatSources.dir
         }
       }
     }
 
     /**
-     * Adds a task to extract protos from protobuf dependencies. They are
+     * Adds a task to extract flats from flatbuf dependencies. They are
      * treated as sources and will be compiled.
      *
      * <p>This task is per-sourceSet, for both Java and Android. In Android a
      * variant may have multiple sourceSets, each of these sourceSets will have
      * its own extraction task.
      */
-    private Task maybeAddExtractProtosTask(String sourceSetName) {
-      def extractProtosTaskName = 'extract' +
-          Utils.getSourceSetSubstringForTaskNames(sourceSetName) + 'Proto'
-      Task existingTask = project.tasks.findByName(extractProtosTaskName)
+    private Task maybeAddExtractFlatsTask(String sourceSetName) {
+      def extractFlatsTaskName = 'extract' +
+          Utils.getSourceSetSubstringForTaskNames(sourceSetName) + 'Flat'
+      Task existingTask = project.tasks.findByName(extractFlatsTaskName)
       if (existingTask != null) {
         return existingTask
       }
-      return project.tasks.create(extractProtosTaskName, FlatbufExtract) {
-        description = "Extracts proto files/dependencies specified by 'protobuf' configuration"
-        destDir = getExtractedProtosDir(sourceSetName) as File
-        inputs.files project.configurations[Utils.getConfigName(sourceSetName, 'protobuf')]
+      return project.tasks.create(extractFlatsTaskName, FlatbufExtract) {
+        description = "Extracts flat files/dependencies specified by 'flatbuf' configuration"
+        destDir = getExtractedFlatsDir(sourceSetName) as File
+        inputs.files project.configurations[Utils.getConfigName(sourceSetName, 'flatbuf')]
       }
     }
 
     /**
-     * Adds a task to extract protos from compile dependencies of a sourceSet,
-     * if there isn't one. Those are needed for imports in proto files, but
+     * Adds a task to extract flats from compile dependencies of a sourceSet,
+     * if there isn't one. Those are needed for imports in flat files, but
      * they won't be compiled since they have already been compiled in their
      * own projects or artifacts.
      *
@@ -329,33 +329,33 @@ class FlatbufPlugin implements Plugin<Project> {
      * variant may have multiple sourceSets, each of these sourceSets will have
      * its own extraction task.
      */
-    private Task maybeAddExtractIncludeProtosTask(String sourceSetName) {
-      def extractIncludeProtosTaskName = 'extractInclude' +
-          Utils.getSourceSetSubstringForTaskNames(sourceSetName) + 'Proto'
-      Task existingTask = project.tasks.findByName(extractIncludeProtosTaskName)
+    private Task maybeAddExtractIncludeFlatsTask(String sourceSetName) {
+      def extractIncludeFlatsTaskName = 'extractInclude' +
+          Utils.getSourceSetSubstringForTaskNames(sourceSetName) + 'Flat'
+      Task existingTask = project.tasks.findByName(extractIncludeFlatsTaskName)
       if (existingTask != null) {
         return existingTask
       }
-      return project.tasks.create(extractIncludeProtosTaskName, FlatbufExtract) {
-        description = "Extracts proto files from compile dependencies for includes"
-        destDir = getExtractedIncludeProtosDir(sourceSetName) as File
+      return project.tasks.create(extractIncludeFlatsTaskName, FlatbufExtract) {
+        description = "Extracts flat files from compile dependencies for includes"
+        destDir = getExtractedIncludeFlatsDir(sourceSetName) as File
         inputs.files project.configurations[Utils.getConfigName(sourceSetName, 'compile')]
 
-        // TL; DR: Make protos in 'test' sourceSet able to import protos from the 'main' sourceSet.
+        // TL; DR: Make flats in 'test' sourceSet able to import flats from the 'main' sourceSet.
         // Sub-configurations, e.g., 'testCompile' that extends 'compile', don't depend on the
         // their super configurations. As a result, 'testCompile' doesn't depend on 'compile' and
-        // it cannot get the proto files from 'main' sourceSet through the configuration. However,
+        // it cannot get the flat files from 'main' sourceSet through the configuration. However,
 	if (Utils.isAndroidProject(project)) {
           // TODO(zhangkun83): Android sourceSet doesn't have compileClasspath. If it did, we
-          // haven't figured out a way to put source protos in 'resources'. For now we use an ad-hoc
-          // solution that manually includes the source protos of 'main' and its dependencies.
+          // haven't figured out a way to put source flats in 'resources'. For now we use an ad-hoc
+          // solution that manually includes the source flats of 'main' and its dependencies.
           if (sourceSetName == 'androidTest') {
-            inputs.files getSourceSets()['main'].proto
+            inputs.files getSourceSets()['main'].flat
             inputs.files project.configurations['compile']
           }
         } else {
           // In Java projects, the compileClasspath of the 'test' sourceSet includes all the
-          // 'resources' of the output of 'main', in which the source protos are placed.
+          // 'resources' of the output of 'main', in which the source flats are placed.
           // This is nicer than the ad-hoc solution that Android has, because it works for any
           // extended configuration, not just 'testCompile'.
           inputs.files getSourceSets()[sourceSetName].compileClasspath
@@ -363,20 +363,20 @@ class FlatbufPlugin implements Plugin<Project> {
       }
     }
 
-    private linkGenerateProtoTasksToJavaCompile() {
+    private linkGenerateFlatTasksToJavaCompile() {
       if (Utils.isAndroidProject(project)) {
         (getNonTestVariants() + project.android.testVariants).each { variant ->
-          project.protobuf.generateProtoTasks.ofVariant(variant.name).each { generateProtoTask ->
+          project.flatbuf.generateFlatTasks.ofVariant(variant.name).each { generateFlatTask ->
             // This cannot be called once task execution has started
-            variant.registerJavaGeneratingTask(generateProtoTask, generateProtoTask.getAllOutputDirs())
+            variant.registerJavaGeneratingTask(generateFlatTask, generateFlatTask.getAllOutputDirs())
           }
         }
       } else {
         project.sourceSets.each { sourceSet ->
           def javaCompileTask = project.tasks.getByName(sourceSet.getCompileTaskName("java"))
-          project.protobuf.generateProtoTasks.ofSourceSet(sourceSet.name).each { generateProtoTask ->
-            javaCompileTask.dependsOn(generateProtoTask)
-            generateProtoTask.getAllOutputDirs().each { dir ->
+          project.flatbuf.generateFlatTasks.ofSourceSet(sourceSet.name).each { generateFlatTask ->
+            javaCompileTask.dependsOn(generateFlatTask)
+            generateFlatTask.getAllOutputDirs().each { dir ->
               javaCompileTask.source project.fileTree(dir: dir)
             }
           }
@@ -384,12 +384,12 @@ class FlatbufPlugin implements Plugin<Project> {
       }
     }
 
-    private String getExtractedIncludeProtosDir(String sourceSetName) {
-      return "${project.buildDir}/extracted-include-protos/${sourceSetName}"
+    private String getExtractedIncludeFlatsDir(String sourceSetName) {
+      return "${project.buildDir}/extracted-include-flats/${sourceSetName}"
     }
 
-    private String getExtractedProtosDir(String sourceSetName) {
-      return "${project.buildDir}/extracted-protos/${sourceSetName}"
+    private String getExtractedFlatsDir(String sourceSetName) {
+      return "${project.buildDir}/extracted-flats/${sourceSetName}"
     }
 
 }

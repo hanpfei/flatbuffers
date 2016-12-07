@@ -29,37 +29,35 @@
 
 package com.netease.flatbuf.gradle
 
-import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.internal.file.FileResolver
-import org.gradle.api.tasks.SourceSet
 import org.gradle.util.ConfigureUtil
 
 /**
- * The main configuration block exposed as {@code protobuf} in the build script.
+ * The main configuration block exposed as {@code flatbuf} in the build script.
  */
 public class FlatbufConfigurator {
   private final Project project
-  private final GenerateProtoTaskCollection tasks
+  private final GenerateFlatTaskCollection tasks
   private final ToolsLocator tools
   private final ArrayList<Closure> taskConfigClosures
 
   /**
    * The base directory of generated files. The default is
-   * "${project.buildDir}/generated/source/proto".
+   * "${project.buildDir}/generated/source/flat".
    */
   public String generatedFilesBaseDir
 
   public FlatbufConfigurator(Project project, FileResolver fileResolver) {
     this.project = project
     if (Utils.isAndroidProject(project)) {
-      tasks = new AndroidGenerateProtoTaskCollection()
+      tasks = new AndroidGenerateFlatTaskCollection()
     } else {
-      tasks = new JavaGenerateProtoTaskCollection()
+      tasks = new JavaGenerateFlatTaskCollection()
     }
     tools = new ToolsLocator(project)
     taskConfigClosures = new ArrayList()
-    generatedFilesBaseDir = "${project.buildDir}/generated/source/proto"
+    generatedFilesBaseDir = "${project.buildDir}/generated/source/flat"
   }
 
   void runTaskConfigClosures() {
@@ -73,11 +71,11 @@ public class FlatbufConfigurator {
   //===========================================================================
 
   /**
-   * Locates the protoc executable. The closure will be manipulating an
+   * Locates the flatc executable. The closure will be manipulating an
    * ExecutableLocator.
    */
-  public void protoc(Closure configureClosure) {
-    ConfigureUtil.configure(configureClosure, tools.protoc)
+  public void flatc(Closure configureClosure) {
+    ConfigureUtil.configure(configureClosure, tools.flatc)
   }
 
   /**
@@ -99,7 +97,7 @@ public class FlatbufConfigurator {
    * change the task in your own afterEvaluate closure, as the change may not
    * be picked up correctly by the wired javaCompile task.
    */
-  public void generateProtoTasks(Closure configureClosure) {
+  public void generateFlatTasks(Closure configureClosure) {
     taskConfigClosures.add(configureClosure)
   }
 
@@ -108,51 +106,49 @@ public class FlatbufConfigurator {
    * available only after project evaluation.
    *
    * <p>Do not try to change the tasks other than in the closure provided
-   * to {@link #generateProtoTasks(Closure)}. The reason is explained
+   * to {@link #generateFlatTasks(Closure)}. The reason is explained
    * in the comments for the linked method.
    */
-  public GenerateProtoTaskCollection getGenerateProtoTasks() {
+  public GenerateFlatTaskCollection getGenerateFlatTasks() {
     return tasks
   }
 
-  public class GenerateProtoTaskCollection {
-    public Collection<GenerateProtoTask> all() {
+  public class GenerateFlatTaskCollection {
+    public Collection<GenerateFlatTask> all() {
       return project.tasks.findAll { task ->
-        task instanceof GenerateProtoTask
+        task instanceof GenerateFlatTask
       }
     }
   }
 
-  public class AndroidGenerateProtoTaskCollection
-      extends GenerateProtoTaskCollection {
-    public Collection<GenerateProtoTask> ofFlavor(String flavor) {
+  public class AndroidGenerateFlatTaskCollection extends GenerateFlatTaskCollection {
+    public Collection<GenerateFlatTask> ofFlavor(String flavor) {
       return all().findAll { task ->
         task.flavors.contains(flavor)
       }
     }
 
-    public Collection<GenerateProtoTask> ofBuildType(String buildType) {
+    public Collection<GenerateFlatTask> ofBuildType(String buildType) {
       return all().findAll { task ->
         task.buildType == buildType
       }
     }
 
-    public Collection<GenerateProtoTask> ofVariant(String variant) {
+    public Collection<GenerateFlatTask> ofVariant(String variant) {
       return all().findAll { task ->
         task.variant.name == variant
       }
     }
-    public Collection<GenerateProtoTask> ofNonTest() {
+    public Collection<GenerateFlatTask> ofNonTest() {
       return all().findAll { task -> !task.isTestVariant }
     }
-    public Collection<GenerateProtoTask> ofTest() {
+    public Collection<GenerateFlatTask> ofTest() {
       return all().findAll { task -> task.isTestVariant }
     }
   }
 
-  public class JavaGenerateProtoTaskCollection
-      extends GenerateProtoTaskCollection {
-    public Collection<GenerateProtoTask> ofSourceSet(String sourceSet) {
+  public class JavaGenerateFlatTaskCollection extends GenerateFlatTaskCollection {
+    public Collection<GenerateFlatTask> ofSourceSet(String sourceSet) {
       return all().findAll { task ->
         task.sourceSet.name == sourceSet
       }

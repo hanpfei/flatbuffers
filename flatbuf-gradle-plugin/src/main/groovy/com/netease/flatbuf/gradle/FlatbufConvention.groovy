@@ -35,16 +35,16 @@ import org.gradle.api.internal.file.FileResolver
 import org.gradle.util.ConfigureUtil
 
 /**
- * Adds the protobuf {} block as a property of the project.
+ * Adds the flatbuf {} block as a property of the project.
  */
 class FlatbufConvention {
     def FlatbufConvention(Project project, FileResolver fileResolver) {
-        protobuf = new FlatbufConfigurator(project, fileResolver)
+        flatbuf = new FlatbufConfigurator(project, fileResolver)
     }
 
-    def final FlatbufConfigurator protobuf
+    def final FlatbufConfigurator flatbuf
 
-    def protobuf(Closure configureClosure) {
-        ConfigureUtil.configure(configureClosure, protobuf)
+    def flatbuf(Closure configureClosure) {
+        ConfigureUtil.configure(configureClosure, flatbuf)
     }
 }

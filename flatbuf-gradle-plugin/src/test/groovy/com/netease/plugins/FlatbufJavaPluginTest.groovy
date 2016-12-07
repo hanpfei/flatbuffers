@@ -1,6 +1,6 @@
 package com.netease.flatbuf.gradle.plugins
 
-import com.netease.flatbuf.gradle.GenerateProtoTask
+import com.netease.flatbuf.gradle.GenerateFlatTask
 import com.netease.flatbuf.gradle.FlatbufExtract
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -26,8 +26,8 @@ class FlatbufJavaPluginTest extends Specification {
     project.evaluate()
 
     then: "generate tasks added"
-    assert project.tasks.generateProto instanceof GenerateProtoTask
-    assert project.tasks.generateTestProto instanceof GenerateProtoTask
+    assert project.tasks.generateProto instanceof GenerateFlatTask
+    assert project.tasks.generateTestProto instanceof GenerateFlatTask
 
     assert project.tasks.extractIncludeProto instanceof FlatbufExtract
     assert project.tasks.extractIncludeTestProto instanceof FlatbufExtract
@@ -46,7 +46,7 @@ class FlatbufJavaPluginTest extends Specification {
     project.evaluate()
 
     then: "tasks for main2 added"
-    assert project.tasks.generateMain2Proto instanceof GenerateProtoTask
+    assert project.tasks.generateMain2Proto instanceof GenerateFlatTask
 
     assert project.tasks.extractIncludeMain2Proto instanceof FlatbufExtract
     assert project.tasks.extractMain2Proto instanceof FlatbufExtract

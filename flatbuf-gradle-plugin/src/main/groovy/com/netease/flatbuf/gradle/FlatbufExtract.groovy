@@ -34,7 +34,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 
 /**
- * Extracts proto files from a dependency configuration.
+ * Extracts flat files from a dependency configuration.
  */
 class FlatbufExtract extends DefaultTask {
 
@@ -56,16 +56,16 @@ class FlatbufExtract extends DefaultTask {
   @TaskAction
   def extract() {
     inputs.files.each { file ->
-      logger.debug "Extracting protos from ${file} to ${destDir}"
+      logger.debug "Extracting flats from ${file} to ${destDir}"
       if (file.isDirectory()) {
         project.copy {
           includeEmptyDirs(false)
           from(file.path) {
-            include '**/*.proto'
+            include '**/*.fbs'
           }
           into(destDir)
         }
-      } else if (file.path.endsWith('.proto')) {
+      } else if (file.path.endsWith('.fbs')) {
         project.copy {
           includeEmptyDirs(false)
           from(file.path)
@@ -75,7 +75,7 @@ class FlatbufExtract extends DefaultTask {
         project.copy {
           includeEmptyDirs(false)
           from(project.zipTree(file.path)) {
-            include '**/*.proto'
+            include '**/*.fbs'
           }
           into(destDir)
         }
@@ -83,7 +83,7 @@ class FlatbufExtract extends DefaultTask {
         project.copy {
           includeEmptyDirs(false)
           from(project.tarTree(file.path)) {
-            include '**/*.proto'
+            include '**/*.fbs'
           }
           into(destDir)
         }

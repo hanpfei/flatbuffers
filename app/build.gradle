@@ -18,9 +18,38 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    sourceSets {
+        main {
+            flat {
+                srcDir 'src/main/flat'
+            }
+        }
+    }
+
 //    lintOptions {
 //        abortOnError false
 //    }
+}
+
+flatbuf {
+    flatc {
+        path = '/usr/local/bin/flatc'
+    }
+
+    generateFlatTasks {
+        all().each { task ->
+            task.builtins {
+                remove java
+            }
+            task.builtins {
+                java { }
+                // Add cpp output without any option.
+                // DO NOT omit the braces if you want this builtin to be added.
+                cpp { }
+            }
+        }
+    }
 }
 
 buildscript {

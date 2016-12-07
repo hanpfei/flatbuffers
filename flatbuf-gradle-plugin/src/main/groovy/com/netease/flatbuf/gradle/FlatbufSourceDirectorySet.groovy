@@ -39,13 +39,13 @@ import org.gradle.internal.reflect.Instantiator
 import org.gradle.util.ConfigureUtil
 
 /**
- * The backing class of the proto extension added to sourceSets, e.g., sourceSets.main.proto
+ * The backing class of the flat extension added to sourceSets, e.g., sourceSets.main.flat
  */
 public class FlatbufSourceDirectorySet extends DefaultSourceDirectorySet {
 
   public FlatbufSourceDirectorySet(String name, FileResolver fileResolver) {
     super(name, String.format("%s Proto source", name), fileResolver, new DefaultDirectoryFileTreeFactory())
-    srcDir("src/${name}/proto")
-    include("**/*.proto")
+    srcDir("src/${name}/flat")
+    include("**/*.fbs")
   }
 }
